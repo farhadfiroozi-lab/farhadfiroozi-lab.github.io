@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Vacation Tracker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f8f8f8;
+      color: #1d1d1d;
+      padding: 24px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #616061;
+      margin-bottom: 20px;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .year-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .year-nav button {
+      background: none;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .year-nav button:hover { background: #f0f0f0; }
+
+    #yearLabel { font-weight: 700; font-size: 16px; min-width: 44px; text-align: center; }
+
+    .btn {
+      padding: 6px 14px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .btn-primary { background: #4a154b; color: #fff; }
+    .btn-primary:hover { background: #611f64; }
+    .btn-secondary { background: #fff; border: 1px solid #ddd; color: #1d1d1d; }
+    .btn-secondary:hover { background: #f0f0f0; }
+    .btn-danger { background: #e01e5a; color: #fff; }
+    .btn-danger:hover { background: #c91651; }
+
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      background: #fff;
+    }
+
+    table {
+      border-collapse: collapse;
+      min-width: 900px;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid #e8e8e8;
+      text-align: center;
+      font-size: 11px;
+    }
+
+    th.person-col, td.person-col {
+      text-align: left;
+      padding: 8px 12px;
+      min-width: 130px;
+      font-weight: 600;
+      position: sticky;
+      left: 0;
+      background: #fff;
+      z-index: 2;
+      border-right: 2px solid #ddd;
+    }
+
+    th.month-header {
+      background: #4a154b;
+      color: #fff;
+      font-weight: 700;
+      padding: 6px 4px;
+      letter-spacing: 0.3px;
+      font-size: 11px;
+    }
+
+    th.day-header {
+      background: #f4f4f4;
+      padding: 4px 2px;
+      font-size: 10px;
+      color: #616061;
+      min-width: 18px;
+      width: 18px;
+    }
+
+    th.day-header.weekend { color: #ccc; }
+
+    td.day-cell {
+      width: 18px;
+      min-width: 18px;
+      height: 28px;
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.1s;
+    }
+
+    td.day-cell:hover { background: #e8d5e8 !important; }
+    td.day-cell.weekend { background: #fafafa; }
+    td.day-cell.vacation { background: #4a154b; }
+    td.day-cell.today { outline: 2px solid #e01e5a; outline-offset: -2px; }
+
+    td.day-cell.dragging { background: #c9a5c9 !important; }
+
+    .person-cell-inner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .person-name {
+      flex: 1;
+      font-size: 12px;
+    }
+
+    .edit-name-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #888;
+      font-size: 12px;
+      padding: 2px;
+      opacity: 0;
+      transition: opacity 0.1s;
+    }
+
+    td.person-col:hover .edit-name-btn { opacity: 1; }
+
+    .legend {
+      margin-top: 16px;
+      display: flex;
+      gap: 20px;
+      font-size: 12px;
+      color: #616061;
+      flex-wrap: wrap;
+    }
+
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+
+    .legend-swatch {
+      width: 14px; height: 14px; border-radius: 2px;
+    }
+
+    .days-off-count {
+      font-size: 10px;
+      color: #888;
+      display: block;
+      font-weight: 400;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: 8px;
+      padding: 24px;
+      width: 340px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    .modal h2 { font-size: 16px; margin-bottom: 16px; }
+
+    .modal label { font-size: 13px; color: #616061; display: block; margin-bottom: 4px; }
+
+    .modal input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      outline: none;
+    }
+
+    .modal input:focus { border-color: #4a154b; }
+
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+    .toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      background: #1d1d1d;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<h1>🏖 Team Vacations</h1>
+<p class="subtitle">Click a day to toggle vacation. Drag to select a range.</p>
+
+<div class="controls">
+  <div class="year-nav">
+    <button onclick="changeYear(-1)">‹</button>
+    <span id="yearLabel"></span>
+    <button onclick="changeYear(1)">›</button>
+  </div>
+  <button class="btn btn-secondary" onclick="copyCanvas()">Copy for Slack Canvas</button>
+  <button class="btn btn-danger" onclick="clearYear()">Clear this year</button>
+</div>
+
+<div class="table-wrapper">
+  <table id="vacTable"></table>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch" style="background:#4a154b"></div>Vacation</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#fafafa;border:1px solid #ddd"></div>Weekend</div>
+  <div class="legend-item"><div class="legend-swatch" style="outline:2px solid #e01e5a;outline-offset:-2px"></div>Today</div>
+</div>
+
+<!-- Edit name modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>Edit name</h2>
+    <label>Name</label>
+    <input type="text" id="modalInput" placeholder="Full name" />
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveName()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const COLORS = ['#4a154b','#0576b9','#1264a3','#2eb67d','#e01e5a','#ecb22e'];
+
+  const DEFAULT_NAMES = ['Alice', 'Bob', 'Carol', 'Dave', 'Eve', 'Frank'];
+
+  let year = new Date().getFullYear();
+  let data = {}; // data[year][person][dateStr] = true
+
+  let dragStart = null;
+  let dragPerson = null;
+  let dragMode = null; // 'add' or 'remove'
+
+  function storageKey() { return 'vacTracker_v1'; }
+
+  function load() {
+    try { data = JSON.parse(localStorage.getItem(storageKey())) || {}; } catch { data = {}; }
+    if (!data.names) data.names = [...DEFAULT_NAMES];
+  }
+
+  function save() {
+    localStorage.setItem(storageKey(), JSON.stringify(data));
+  }
+
+  function getVacations(personIdx) {
+    return (data[year] && data[year][personIdx]) || {};
+  }
+
+  function isVacation(personIdx, dateStr) {
+    return !!(data[year] && data[year][personIdx] && data[year][personIdx][dateStr]);
+  }
+
+  function toggleVacation(personIdx, dateStr, force) {
+    if (!data[year]) data[year] = {};
+    if (!data[year][personIdx]) data[year][personIdx] = {};
+    const cur = !!data[year][personIdx][dateStr];
+    const next = force !== undefined ? force : !cur;
+    if (next) {
+      data[year][personIdx][dateStr] = true;
+    } else {
+      delete data[year][personIdx][dateStr];
+    }
+    save();
+    return next;
+  }
+
+  function countVacDays(personIdx) {
+    return Object.keys(getVacations(personIdx)).length;
+  }
+
+  function isWeekend(date) {
+    const d = date.getDay();
+    return d === 0 || d === 6;
+  }
+
+  function padded(n) { return String(n).padStart(2, '0'); }
+
+  function dateStr(y, m, d) {
+    return `${y}-${padded(m+1)}-${padded(d)}`;
+  }
+
+  function daysInMonth(y, m) {
+    return new Date(y, m + 1, 0).getDate();
+  }
+
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const today = new Date();
+  const todayStr = dateStr(today.getFullYear(), today.getMonth(), today.getDate());
+
+  function buildTable() {
+    const table = document.getElementById('vacTable');
+    table.innerHTML = '';
+    document.getElementById('yearLabel').textContent = year;
+
+    const persons = data.names || DEFAULT_NAMES;
+
+    // Build month/day structure
+    const months = [];
+    for (let m = 0; m < 12; m++) {
+      const days = [];
+      const dim = daysInMonth(year, m);
+      for (let d = 1; d <= dim; d++) {
+        const dt = new Date(year, m, d);
+        days.push({ d, ds: dateStr(year, m, d), weekend: isWeekend(dt) });
+      }
+      months.push({ m, label: MONTHS[m], days });
+    }
+
+    // Header row 1: person col + month spans
+    const thead = table.createTHead();
+    const tr1 = thead.insertRow();
+    const th0 = document.createElement('th');
+    th0.className = 'person-col';
+    th0.rowSpan = 2;
+    th0.textContent = 'Team member';
+    tr1.appendChild(th0);
+
+    months.forEach(mo => {
+      const th = document.createElement('th');
+      th.colSpan = mo.days.length;
+      th.className = 'month-header';
+      th.textContent = mo.label;
+      tr1.appendChild(th);
+    });
+
+    // Header row 2: day numbers
+    const tr2 = thead.insertRow();
+    months.forEach(mo => {
+      mo.days.forEach(({ d, weekend }) => {
+        const th = document.createElement('th');
+        th.className = 'day-header' + (weekend ? ' weekend' : '');
+        th.textContent = d;
+        tr2.appendChild(th);
+      });
+    });
+
+    // Body: one row per person
+    const tbody = table.createTBody();
+    persons.forEach((name, pi) => {
+      const tr = tbody.insertRow();
+
+      // Person cell
+      const td = document.createElement('td');
+      td.className = 'person-col';
+      td.innerHTML = `
+        <div class="person-cell-inner">
+          <div class="avatar" style="background:${COLORS[pi % COLORS.length]}">${name[0]?.toUpperCase() || '?'}</div>
+          <div>
+            <span class="person-name">${name}</span>
+            <span class="days-off-count">${countVacDays(pi)} day${countVacDays(pi) !== 1 ? 's' : ''}</span>
+          </div>
+          <button class="edit-name-btn" onclick="openModal(${pi})" title="Edit name">✎</button>
+        </div>`;
+      tr.appendChild(td);
+
+      // Day cells
+      months.forEach(mo => {
+        mo.days.forEach(({ ds, weekend }) => {
+          const cell = document.createElement('td');
+          cell.className = 'day-cell' + (weekend ? ' weekend' : '') + (isVacation(pi, ds) ? ' vacation' : '') + (ds === todayStr ? ' today' : '');
+          cell.dataset.person = pi;
+          cell.dataset.date = ds;
+
+          cell.addEventListener('mousedown', e => {
+            e.preventDefault();
+            dragPerson = pi;
+            dragStart = ds;
+            dragMode = isVacation(pi, ds) ? 'remove' : 'add';
+            toggleVacation(pi, ds, dragMode === 'add');
+            refreshCell(pi, ds);
+            refreshCount(pi);
+          });
+
+          cell.addEventListener('mouseover', () => {
+            if (dragStart && dragPerson === pi) {
+              applyDragRange(pi, dragStart, ds, dragMode);
+            }
+          });
+
+          tr.appendChild(cell);
+        });
+      });
+    });
+
+    document.addEventListener('mouseup', () => {
+      dragStart = null;
+      dragPerson = null;
+      dragMode = null;
+    }, { once: false });
+  }
+
+  function getDatesBetween(ds1, ds2) {
+    const a = new Date(ds1), b = new Date(ds2);
+    const [start, end] = a <= b ? [a, b] : [b, a];
+    const dates = [];
+    const cur = new Date(start);
+    while (cur <= end) {
+      dates.push(dateStr(cur.getFullYear(), cur.getMonth(), cur.getDate()));
+      cur.setDate(cur.getDate() + 1);
+    }
+    return dates;
+  }
+
+  function applyDragRange(pi, ds1, ds2, mode) {
+    const dates = getDatesBetween(ds1, ds2);
+    dates.forEach(ds => {
+      const cell = document.querySelector(`td[data-person="${pi}"][data-date="${ds}"]`);
+      if (cell) cell.classList.add('dragging');
+    });
+
+    // Actually apply on mouseup — we do it live
+    dates.forEach(ds => {
+      toggleVacation(pi, ds, mode === 'add');
+      refreshCell(pi, ds);
+    });
+    refreshCount(pi);
+  }
+
+  function refreshCell(pi, ds) {
+    const cell = document.querySelector(`td[data-person="${pi}"][data-date="${ds}"]`);
+    if (!cell) return;
+    cell.classList.remove('dragging');
+    if (isVacation(pi, ds)) cell.classList.add('vacation');
+    else cell.classList.remove('vacation');
+  }
+
+  function refreshCount(pi) {
+    const countEl = document.querySelector(`td.person-col:nth-of-type(1)`);
+    // Re-render just the count spans
+    const countSpans = document.querySelectorAll('.days-off-count');
+    if (countSpans[pi]) {
+      const c = countVacDays(pi);
+      countSpans[pi].textContent = `${c} day${c !== 1 ? 's' : ''}`;
+    }
+  }
+
+  function changeYear(delta) {
+    year += delta;
+    buildTable();
+  }
+
+  function clearYear() {
+    if (!confirm(`Clear all vacations for ${year}?`)) return;
+    if (data[year]) delete data[year];
+    save();
+    buildTable();
+  }
+
+  // ---- Name editing ----
+  let editingPerson = null;
+
+  function openModal(pi) {
+    editingPerson = pi;
+    document.getElementById('modalInput').value = data.names[pi];
+    document.getElementById('modalOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('modalInput').focus(), 50);
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    editingPerson = null;
+  }
+
+  function saveName() {
+    const val = document.getElementById('modalInput').value.trim();
+    if (val && editingPerson !== null) {
+      data.names[editingPerson] = val;
+      save();
+      buildTable();
+    }
+    closeModal();
+  }
+
+  document.getElementById('modalInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveName();
+    if (e.key === 'Escape') closeModal();
+  });
+
+  document.getElementById('modalOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  });
+
+  // ---- Copy for Slack Canvas ----
+  function copyCanvas() {
+    const persons = data.names || DEFAULT_NAMES;
+    const lines = [];
+    lines.push(`# Team Vacations ${year}`);
+    lines.push('');
+    lines.push('| Name | Vacation days | Periods |');
+    lines.push('|------|--------------|---------|');
+
+    persons.forEach((name, pi) => {
+      const vacs = getVacations(pi);
+      const sorted = Object.keys(vacs).sort();
+      const periods = groupIntoPeriods(sorted);
+      const periodsStr = periods.map(p => p.start === p.end ? p.start : `${p.start} → ${p.end}`).join(', ') || '—';
+      lines.push(`| ${name} | ${sorted.length} | ${periodsStr} |`);
+    });
+
+    lines.push('');
+    lines.push(`_Last updated: ${today.toDateString()}_`);
+
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      showToast('Copied! Paste into a Slack Canvas or message.');
+    });
+  }
+
+  function groupIntoPeriods(sortedDates) {
+    if (!sortedDates.length) return [];
+    const periods = [];
+    let start = sortedDates[0], prev = sortedDates[0];
+    for (let i = 1; i < sortedDates.length; i++) {
+      const cur = sortedDates[i];
+      const prevDate = new Date(prev);
+      prevDate.setDate(prevDate.getDate() + 1);
+      // skip weekends
+      while (prevDate.getDay() === 0 || prevDate.getDay() === 6) prevDate.setDate(prevDate.getDate() + 1);
+      const expected = dateStr(prevDate.getFullYear(), prevDate.getMonth(), prevDate.getDate());
+      if (cur !== expected && cur !== dateStr(new Date(prev).getFullYear(), new Date(prev).getMonth(), new Date(prev).getDate() + 1)) {
+        periods.push({ start, end: prev });
+        start = cur;
+      }
+      prev = cur;
+    }
+    periods.push({ start, end: prev });
+    return periods;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // ---- Init ----
+  load();
+  buildTable();
+</script>
+</body>
+</html>
